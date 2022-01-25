@@ -8,5 +8,7 @@
   There is NO WARRANTY, to the extent permitted by law.
 
   You must have the following utilities installed on your computer:
-  GNU bash, version 4.4.20
-  cw version 3.5.1
+  GNU bash, version 4.4.20  <https://www.gnu.org/software/bash/>
+  unixcw version 3.5.1  <https://github.com/g4z/unixcw>
+                        <http://unixcw.sourceforge.net/>
+
