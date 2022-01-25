@@ -11,7 +11,7 @@ declare -xi recvRst=599 dxWpm=14 dxTone=800 dxVolume=70
 declare -xi sendRst=599 myWpm=14 myTone=800 myVolume=50
 
 declare -r configDir="$HOME/.gccqs"
-declare -r configFile='gccqs.conf'
+declare -r configFile="$configDir/gccqs.conf"
 
 function showHelp() {
   echo '
@@ -31,7 +31,8 @@ unixcw (cw), version 3.5.1 <https://github.com/g4z/unixcw>
 
 function exitProgram() {
   # [ -n "$cwPid" ] &&  kill "$cwPid" 2>/dev/null
-  killall -q cw 2>/dev/null 
+  killall -q cw 2>/dev/null
+  # killall -q play 2>/dev/null
   exit
 }
 trap "exitProgram" EXIT
@@ -60,17 +61,17 @@ ${str2:$((RANDOM % 26)):1}"
   done
 
   recvRst="5$((5 + (RANDOM % 4)))9"
-  dxWpm="$((12 + (RANDOM % 8)))"
-  dxTone="$((300 + (RANDOM % 800)))"
-  dxVolume="$((10 + (RANDOM % 50)))"
+  dxWpm="$((minDxWpm + (RANDOM % (maxDxWpm - minDxWpm))))"
+  dxTone="$((minDxTone + (RANDOM % (maxDxTone - minDxTone))))"
+  dxVolume="$((minDxVolume + (RANDOM % (maxDxVolume-minDxVolume))))"
 }
 
-function receiveDxCall() { ### ????
+function receiveDxCall() { ###
   echo "DE $dxCall [AR]"\
   | cw -em -w $dxWpm -t $dxTone -v $dxVolume
 }
 
-function receiveDxRaport() { ### ????
+function receiveDxRaport() { ###
   case $(($RANDOM % 3)) in
     0) string="R R DE $dxCall UR ${recvRst//9/N} [AR]" ;;
     1) string="CFM DE $dxCall UR ${recvRst} [AR]" ;;
@@ -118,7 +119,7 @@ if [[ "$1" =~ $regex ]]; then
   exit
 fi
 
-if [ ! -f "$configDir/$configFile" ]; then
+if [ ! -f "$configFile" ]; then
 
   mkdir -p "$configDir" || exit
 
@@ -143,28 +144,79 @@ if [ ! -f "$configDir/$configFile" ]; then
     read -ei '50' -p 'Your Volume [0-100] > ' myVolume
   done
 
+  minDxWpm=0
+  while (((minDxWpm < 4) || (minDxWpm > 60))); do
+    read -ei '12' -p 'Min DX WPM [4-60] > ' minDxWpm
+  done
+
+  maxDxWpm=0
+  while (((maxDxWpm < minDxWpm) || (maxDxWpm > 60))); do
+    read -ei '20' -p 'Max DX WPM [4-60] > ' maxDxWpm
+  done
+
+  minDxTone=0
+  while (((minDxTone < 50) || (minDxTone > 4000))); do
+    read -ei '300' -p 'Min DX Tone [0-4000] > ' minDxTone
+  done
+
+  maxDxTone=0
+  while (((maxDxTone < minDxTone) || (maxDxTone > 4000))); do
+    read -ei '1200' -p 'Max DX Tone [0-4000] > ' maxDxTone
+  done
+
+
+  minDxVolume=0
+  while (((minDxVolume < 1) || (minDxVolume > 100))); do
+    read -ei '1' -p 'Min DX Volume [0-100] > ' minDxVolume
+  done
+
+  maxDxVolume=0
+  while (((maxDxVolume < minDxVolume) || (maxDxVolume > 100))); do
+    read -ei '80' -p 'Max DX Volume [0-100] > ' maxDxVolume
+  done
+
  {
    echo "myCall=${myCall:-NOCALL}"
-   echo "myWpm=${myWpm:-12}"
+   echo '#'
+   echo "myWpm=${myWpm:-14}"
    echo "myTone=${myTone:-800}"
    echo "myVolume=${myVolume:-50}"
- } > "$configDir/$configFile"
+   echo '#'
+   echo "minDxWpm=${minDxWpm:-12}"
+   echo "maxDxWpm=${maxDxWpm:-20}"
+   echo '#'
+   echo "minDxTone=${minDxTone:-300}"
+   echo "maxDxTone=${maxDxTone:-1200}"
+   echo '#'
+   echo "minDxVolume=${minDxVolume:-1}"
+   echo "maxDxVolume=${maxDxVolume:-80}"
+ } > "$configFile"
 
 fi
 
-source "$configDir/$configFile"
+source "$configFile"
 
 echo 'gccqs - GNU CLI CW QSO Simulator'
 echo '======================================'
-echo "Call:   $myCall"
-echo "WPM:    $myWpm"
-echo "Tone:   $myTone"
-echo "Volume: $myVolume"
-echo "Config File: $configDir/$configFile"
+echo "My Call:   $myCall"
+
+echo "My WPM:    $myWpm PARIS"
+echo "DX WPM:    ${minDxWpm}..${maxDxWpm} PARIS"
+
+echo "Tone:      $myTone Hz"
+echo "DX Tone:   ${minDxTone}..${maxDxTone} Hz"
+
+echo "Volume:    $myVolume%"
+echo "DX Volume: ${minDxVolume}..${maxDxVolume}%"
+
+echo "Config File: $configFile"
 echo '======================================'
 
 setNewDxInfo
 echoInfo
+
+# (play -q -c 2 -r 48000 -e signed -L -b 32 -t raw -v 0.02 /dev/urandom) &
+# noiceSoursePid=$!
 
 PS3='Command or "DxCall RST"> '
 select choice in 'CQ' 'QRZ?' 'AGN' 'TU'; do
