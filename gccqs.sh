@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# gccqs - GNU CLI CW QSO Simulator, version 1.0
+# gccqs - GNU CLI CW QSO Simulator, version 1.0 beta
 # Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 # License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 # This is free software; you are free to change and redistribute it.
@@ -15,7 +15,7 @@ declare -r configFile="$configDir/gccqs.conf"
 
 function showHelp() {
   echo '
-gccqs - GNU CLI CW QSO Simulator, version 1.0
+gccqs - GNU CLI CW QSO Simulator, version 1.0 beta
 
 Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
