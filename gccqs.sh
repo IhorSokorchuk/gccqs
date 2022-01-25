@@ -10,6 +10,9 @@ declare -xu dxCall='' myCall='' sendCall=''
 declare -xi recvRst=599 dxWpm=14 dxTone=800 dxVolume=70
 declare -xi sendRst=599 myWpm=14 myTone=800 myVolume=50
 
+declare -r configDir="$HOME/.gccqs"
+declare -r configFile='gccqs.conf'
+
 function showHelp() {
   echo '
 gccqs - GNU CLI CW QSO Simulator, version 1.0
@@ -37,9 +40,9 @@ function echoInfo() {
   echo 'Type command (c,q,?,a,t) or Q for Quit'
 }
 
-str1='1234567890QWERTYUIOPASDFGHJKLZXCVBNM'
-str2='QWERTYUIOPASDFGHJKLZXCVBNM'
-str3='1234567890'
+declare -r str1='1234567890QWERTYUIOPASDFGHJKLZXCVBNM'
+declare -r str2='QWERTYUIOPASDFGHJKLZXCVBNM'
+declare -r str3='1234567890'
 
 function setNewDxInfo() {
   dxCall='R' 
@@ -115,7 +118,9 @@ if [[ "$1" =~ $regex ]]; then
   exit
 fi
 
-if [ ! -f gccqs.conf ]; then
+if [ ! -f "$configDir/$configFile" ]; then
+
+  mkdir -p "$configDir" || exit
 
   myCall=''
   callRegex=".{1,2}[0-9].+[A-Z]+"
@@ -143,18 +148,19 @@ if [ ! -f gccqs.conf ]; then
    echo "myWpm=${myWpm:-12}"
    echo "myTone=${myTone:-800}"
    echo "myVolume=${myVolume:-50}"
- } > gccqs.conf
+ } > "$configDir/$configFile"
 
 fi
 
-source gccqs.conf
+source "$configDir/$configFile"
 
-echo 'gccqs - CLI CW QSO Simulator'
+echo 'gccqs - GNU CLI CW QSO Simulator'
 echo '======================================'
 echo "Call:   $myCall"
 echo "WPM:    $myWpm"
 echo "Tone:   $myTone"
 echo "Volume: $myVolume"
+echo "Config File: $configDir/$configFile"
 echo '======================================'
 
 setNewDxInfo
