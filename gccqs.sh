@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# GNU ccqs, version 1.0
+# GNU gccqs, version 1.0
 # Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 # License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 # This is free software; you are free to change and redistribute it.
@@ -11,7 +11,7 @@ declare -xi recvRst=599 dxWpm=14 dxTone=800 dxVolume=70
 declare -xi sendRst=599 myWpm=14 myTone=800 myVolume=50
 
 function showHelp() {
-  echo 'GNU ccqs, version 1.0
+  echo 'GNU gccqs, version 1.0
 Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 This is free software; you are free to change and redistribute it.
@@ -101,7 +101,7 @@ function doQso() {
 
 # MAIN()
 
-if [ ! -f ccqs.conf ]; then
+if [ ! -f gccqs.conf ]; then
 
   myCall=''
   callRegex=".{1,2}[0-9].+[A-Z]+"
@@ -129,13 +129,13 @@ if [ ! -f ccqs.conf ]; then
    echo "myWpm=${myWpm:-12}"
    echo "myTone=${myTone:-800}"
    echo "myVolume=${myVolume:-50}"
- } > ccqs.conf
+ } > gccqs.conf
 
 fi
 
-source ccqs.conf
+source gccqs.conf
 
-echo 'ccqs - CLI CW QSO Simulator'
+echo 'gccqs - CLI CW QSO Simulator'
 echo '======================================'
 echo "Call:   $myCall"
 echo "WPM:    $myWpm"
