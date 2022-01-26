@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# gccqs - GNU CLI CW QSO Simulator, version 1.0 beta
+# gccqs - GNU CLI CW QSO Simulator, version 1.0-0126 beta
 # Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 # License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 # This is free software; you are free to change and redistribute it.
@@ -9,14 +9,22 @@
 declare -xu dxCall='' myCall='' sendCall=''
 declare -xi recvRst=599 dxWpm=14 dxTone=800 dxVolume=70
 declare -xi sendRst=599 myWpm=14 myTone=800 myVolume=50
+declare -i minDxWpm maxDxWpm minDxTone maxDxTone minDxVolume maxDxVolume
 
 declare -r configDir="$HOME/.gccqs"
 declare -r configFile="$configDir/gccqs.conf"
 
 function showHelp() {
-  echo '
-gccqs - GNU CLI CW QSO Simulator, version 1.0 beta
+  echo 'Usage: qccqs [OPTION]
+GNU CLI CW QSO Simulator
 
+  -c, --configure  configure and exit
+  -h, --help       display this help and exit
+  -v, --version    output version information and exit'
+}
+
+function showVersion() {
+  echo 'gccqs - GNU CLI CW QSO Simulator, version 1.0-0126 beta
 Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 This is free software; you are free to change and redistribute it.
@@ -25,8 +33,7 @@ There is NO WARRANTY, to the extent permitted by law.
 You must have the following utilities installed on your computer:
 GNU bash, version 4.4.20   <https://www.gnu.org/software/bash/>
 unixcw (cw), version 3.5.1 <https://github.com/g4z/unixcw>
-                           <https://sourceforge.net/projects/unixcw/>
-'
+                           <https://sourceforge.net/projects/unixcw/>'
 }
 
 function exitProgram() {
@@ -37,6 +44,108 @@ function exitProgram() {
 }
 trap "exitProgram" EXIT
 
+function changeConfiguration() {
+
+  mkdir -p "$configDir"
+
+  [ -f "$configFile" ] && source "$configFile"
+
+  myCall=${myCall:-''}
+  regex=".{1,2}[0-9].+[A-Z]+"
+  while :; do
+    read -ei "$myCall" -p 'Your Call > ' myCall
+    [[ "$myCall" =~ $regex ]] && break
+  done
+
+  myWpm=${myWpm:-14}
+  while :; do
+    read -ei "$myWpm" -p 'Your WPM [4-60] > ' myWpm
+    (((myWpm >= 4) && (myWpm <= 60))) && break
+  done
+
+  myTone=${myTone:-800}
+  while :; do
+    read -ei "$myTone" -p 'Your Tone [0-4000] > ' myTone
+    (((myTone >= 50) && (myTone <= 4000))) && break
+  done
+
+  myVolume=${myVolume:-50}
+  while :; do
+    read -ei "$myVolume" -p 'Your Volume [0-100] > ' myVolume
+    (((myVolume >= 1) && (myVolume <= 100))) && break
+  done
+
+  minDxWpm=${minDxWpm:-12}
+  while :; do
+    read -ei "$minDxWpm" -p 'Min DX WPM [4-60] > ' minDxWpm
+    (((minDxWpm >= 4) && (minDxWpm <= 60))) && break
+  done
+
+  maxDxWpm=${maxDxWpm:-20}
+  while :; do
+    read -ei "$maxDxWpm" -p 'Max DX WPM [4-60] > ' maxDxWpm
+    (((maxDxWpm >= minDxWpm) && (maxDxWpm <= 60))) && break
+  done
+
+  # CW Filter Bandwidth
+  # Triangle / Rectangle
+
+  minDxTone=${minDxTone:-300}
+  while :; do
+    read -ei "$minDxTone" -p 'Min DX Tone [0-4000] > ' minDxTone
+    (((minDxTone >= 50) && (minDxTone <= 4000))) && break
+  done
+
+  maxDxTone=${maxDxTone:-300}
+  while :; do
+    read -ei "$maxDxTone" -p 'Max DX Tone [0-4000] > ' maxDxTone
+    (((maxDxTone >= minDxTone) && (maxDxTone <= 4000))) && break
+  done
+
+  minDxVolume=${minDxVolume:-1}
+  while :; do
+    read -ei "$minDxVolume" -p 'Min DX Volume [0-100] > ' minDxVolume
+    (((minDxVolume >= 1) && (minDxVolume <= 100))) && break
+  done
+
+  maxDxVolume=${maxDxVolume:-1}
+  while :; do
+    read -ei "$maxDxVolume" -p 'Max DX Volume [0-100] > ' maxDxVolume
+    (((maxDxVolume >= minDxVolume) && (maxDxVolume <= 100))) && break
+  done
+
+ {
+   echo "myCall=${myCall:-NOCALL}"
+   echo '#'
+   echo "myWpm=${myWpm:-14}"
+   echo "myTone=${myTone:-800}"
+   echo "myVolume=${myVolume:-50}"
+   echo '#'
+   echo "minDxWpm=${minDxWpm:-12}"
+   echo "maxDxWpm=${maxDxWpm:-20}"
+   echo '#'
+   echo "minDxTone=${minDxTone:-300}"
+   echo "maxDxTone=${maxDxTone:-1200}"
+   echo '#'
+   echo "minDxVolume=${minDxVolume:-1}"
+   echo "maxDxVolume=${maxDxVolume:-80}"
+ } > "$configFile"
+
+}
+
+function showConfiguration() {
+  echo '======================================'
+  echo "My Call:   $myCall"
+  echo "My WPM:    $myWpm PARIS"
+  echo "My Tone:   $myTone Hz"
+  echo "My Volume: $myVolume%"
+  echo "DX WPM:    ${minDxWpm}..${maxDxWpm} PARIS"
+  echo "DX Tone:   ${minDxTone}..${maxDxTone} Hz"
+  echo "DX Volume: ${minDxVolume}..${maxDxVolume}%"
+  echo "Config File: $configFile"
+  echo '======================================'
+}
+
 function echoInfo() {
   echo 'Type command (c,q,?,a,t) or Q for Quit'
 }
@@ -44,12 +153,11 @@ function echoInfo() {
 declare -r str1='1234567890QWERTYUIOPASDFGHJKLZXCVBNM'
 declare -r str2='QWERTYUIOPASDFGHJKLZXCVBNM'
 declare -r str3='1234567890'
-
 function setNewDxInfo() {
   dxCall='R' 
   # No Pirates Allowed!
-  callRegex='^R|^U[A-I]|^D[0-1]'
-  while [[ "$dxCall" =~ $callRegex ]]; do
+  regex='^R|^U[A-I]|^D[0-1]'
+  while [[ "$dxCall" =~ $regex ]]; do
     dxCall="\
 ${str1:$((RANDOM % 36)):$((RANDOM)) % 2}\
 ${str2:$((RANDOM % 26)):1}\
@@ -113,104 +221,31 @@ function doQso() {
 
 # MAIN()
 
-regex='-h|--help'
-if [[ "$1" =~ $regex ]]; then
-  showHelp
-  exit
-fi
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -c|--config)
+      [ -f "$configFile" ] && source "$configFile"
+      changeConfiguration
+      showConfiguration
+      exit
+      ;;
+    -v|--version) showVersion; exit ;;
+    -h|--help) showHelp; exit ;;
+  esac
+  shift
+done
+
+exit
+
+echo 'gccqs - GNU CLI CW QSO Simulator'
+echo 'Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>'
 
 if [ ! -f "$configFile" ]; then
-
-  mkdir -p "$configDir" || exit
-
-  myCall=''
-  callRegex=".{1,2}[0-9].+[A-Z]+"
-  until [[ "$myCall" =~ $callRegex ]]; do
-    read -p 'Your Call > ' myCall
-  done
-
-  myWpm=0
-  while (((myWpm < 4) || (myWpm > 60))); do
-    read -ei '14' -p 'Your WPM [4-60] > ' myWpm
-  done
-
-  myTone=0
-  while (((myTone < 50) || (myTone > 4000))); do
-    read -ei '800' -p 'Your Tone [0-4000] > ' myTone
-  done
-
-  myVolume=0
-  while (((myVolume < 1) || (myVolume > 100))); do
-    read -ei '50' -p 'Your Volume [0-100] > ' myVolume
-  done
-
-  minDxWpm=0
-  while (((minDxWpm < 4) || (minDxWpm > 60))); do
-    read -ei '12' -p 'Min DX WPM [4-60] > ' minDxWpm
-  done
-
-  maxDxWpm=0
-  while (((maxDxWpm < minDxWpm) || (maxDxWpm > 60))); do
-    read -ei '20' -p 'Max DX WPM [4-60] > ' maxDxWpm
-  done
-
-  minDxTone=0
-  while (((minDxTone < 50) || (minDxTone > 4000))); do
-    read -ei '300' -p 'Min DX Tone [0-4000] > ' minDxTone
-  done
-
-  maxDxTone=0
-  while (((maxDxTone < minDxTone) || (maxDxTone > 4000))); do
-    read -ei '1200' -p 'Max DX Tone [0-4000] > ' maxDxTone
-  done
-
-
-  minDxVolume=0
-  while (((minDxVolume < 1) || (minDxVolume > 100))); do
-    read -ei '1' -p 'Min DX Volume [0-100] > ' minDxVolume
-  done
-
-  maxDxVolume=0
-  while (((maxDxVolume < minDxVolume) || (maxDxVolume > 100))); do
-    read -ei '80' -p 'Max DX Volume [0-100] > ' maxDxVolume
-  done
-
- {
-   echo "myCall=${myCall:-NOCALL}"
-   echo '#'
-   echo "myWpm=${myWpm:-14}"
-   echo "myTone=${myTone:-800}"
-   echo "myVolume=${myVolume:-50}"
-   echo '#'
-   echo "minDxWpm=${minDxWpm:-12}"
-   echo "maxDxWpm=${maxDxWpm:-20}"
-   echo '#'
-   echo "minDxTone=${minDxTone:-300}"
-   echo "maxDxTone=${maxDxTone:-1200}"
-   echo '#'
-   echo "minDxVolume=${minDxVolume:-1}"
-   echo "maxDxVolume=${maxDxVolume:-80}"
- } > "$configFile"
-
+  changeConfiguration
 fi
 
 source "$configFile"
-
-echo 'gccqs - GNU CLI CW QSO Simulator'
-echo '======================================'
-echo "My Call:   $myCall"
-
-echo "My WPM:    $myWpm PARIS"
-echo "DX WPM:    ${minDxWpm}..${maxDxWpm} PARIS"
-
-echo "Tone:      $myTone Hz"
-echo "DX Tone:   ${minDxTone}..${maxDxTone} Hz"
-
-echo "Volume:    $myVolume%"
-echo "DX Volume: ${minDxVolume}..${maxDxVolume}%"
-
-echo "Config File: $configFile"
-echo '======================================'
+showConfiguration
 
 setNewDxInfo
 echoInfo
@@ -270,8 +305,8 @@ select choice in 'CQ' 'QRZ?' 'AGN' 'TU'; do
       sendRst=$tmpRst
     fi
 
-    callRegex=".{1,2}[0-9].+"
-    if [[ "$sendCall" =~ $callRegex ]]; then
+    regex=".{1,2}[0-9].+"
+    if [[ "$sendCall" =~ $regex ]]; then
 
       doQso "$myCall" "$sendCall" "$sendRst"
 
