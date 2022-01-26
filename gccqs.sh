@@ -235,8 +235,6 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-exit
-
 echo 'gccqs - GNU CLI CW QSO Simulator'
 echo 'Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>'
 
