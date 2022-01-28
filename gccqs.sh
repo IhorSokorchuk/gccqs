@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# gccqs - GNU CLI CW QSO Simulator, version 1.0.0127-beta
+# gccqs - GNU CLI CW QSO Simulator, version 1.1.0128-beta
 # Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 # License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 # This is free software; you are free to change and redistribute it.
@@ -14,20 +14,29 @@ declare -i minDxWpm maxDxWpm minDxTone maxDxTone minDxVolume maxDxVolume
 declare -r configDir="$HOME/.gccqs"
 declare -r configFile="${configDir}/gccqs.conf"
 
-declare -r ukrainianShowVersionText=\
-'gccqs - GNU CLI симулятор CW QSO, версія 1.0.0127-beta
+case "${LANG}" in
+  uk_*) declare -r versionText=\
+'gccqs - GNU CLI симулятор CW QSO, версія 1.1.0128-beta
 Copyright (C) 2022, Ігор Сокорчук <ur3lcm@gmail.com>
 Ліцензія GPLv3+: GNU GPL версії 3 або новішої <http://gnu.org/licenses/gpl.html>
 Це безкоштовне програмне забезпечення, яке ви можете змінювати та поширювати.
-Це програма поширюється БЕЗ будь-яких передбачених законодавством ГАРАНТІЙ.
+Ця програма поширюється БЕЗ будь-яких передбачених законодавством ГАРАНТІЙ.
 
 На вашому комп’ютері повинні бути встановлені такі утиліти:
 GNU bash, версія 4.4.20 <https://www.gnu.org/software/bash/>
 unixcw (cw), версія 3.5.1 <https://github.com/g4z/unixcw>
                           <https://sourceforge.net/projects/unixcw/>'
 
-declare -r englishShowVersionText=\
-'gccqs - GNU CLI CW QSO Simulator, version 1.0.0127-beta
+        declare -r helpText='Використовуйте: qccqs [КЛЮЧІ]
+GNU CLI симулятор CW QSO
+
+   -c, --configure  налаштувати та вийти
+   -h, --help       показати цю довідку та вийти
+   -v, --version    вивести інформацію про версію та вийти'
+  ;;
+
+  *)    declare -r versionText=\
+'gccqs - GNU CLI CW QSO Simulator, version 1.1.0128-beta
 Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 This is free software; you are free to change and redistribute it.
@@ -38,32 +47,22 @@ GNU bash, version 4.4.20   <https://www.gnu.org/software/bash/>
 unixcw (cw), version 3.5.1 <https://github.com/g4z/unixcw>
                            <https://sourceforge.net/projects/unixcw/>'
 
-declare -r ukrainianShowHelpText='Використовуйте: qccqs [КЛЮЧІ]
-GNU CLI симулятор CW QSO 
-
-   -c, --configure  налаштувати та вийти
-   -h, --help       показати цю довідку та вийти
-   -v, --version    вивести інформацію про версію та вийти'
-
-declare -r englishShowHelpText='Usage: qccqs [OPTION]
+        declare -r helpText='Usage: qccqs [OPTION]
 GNU CLI CW QSO Simulator
 
   -c, --configure  configure and exit
   -h, --help       display this help and exit
   -v, --version    output version information and exit'
+  ;;
+
+  esac
 
 function my::showHelp() {
-  case "${LANG}" in
-    uk_*) echo "$ukrainianShowHelpText" ;;
-    *) echo "$englishShowHelpText" ;;
-  esac
+  echo "$helpText"
 }
 
 function my::showVersion() {
-  case "${LANG}" in
-    uk_*) echo "$ukrainianShowVersionText" ;;
-    *) echo "$englishShowVersionText" ;;
-  esac
+  echo "$versionText"
 }
 
 function my::exitProgram() {
@@ -84,37 +83,37 @@ function my::changeConfiguration() {
   myCall=${myCall:-''}
   regex=".{1,2}[0-9].+[A-Z]+"
   while :; do
-    read -ei "${myCall}" -p 'Your Call > ' myCall
+    read -ei "${myCall}" -p 'Your Call >' myCall
     [[ "${myCall}" =~ ${regex} ]] && break
   done
 
   myWpm=${myWpm:-14}
   while :; do
-    read -ei "${myWpm}" -p 'Your WPM [4-60] > ' myWpm
+    read -ei "${myWpm}" -p 'Your WPM [4-60] >' myWpm
     (((myWpm >= 4) && (myWpm <= 60))) && break
   done
 
   myTone=${myTone:-800}
   while :; do
-    read -ei "${myTone}" -p 'Your Tone [0-4000] > ' myTone
+    read -ei "${myTone}" -p 'Your Tone [0-4000] >' myTone
     (((myTone >= 50) && (myTone <= 4000))) && break
   done
 
   myVolume=${myVolume:-50}
   while :; do
-    read -ei "${myVolume}" -p 'Your Volume [0-100] > ' myVolume
+    read -ei "${myVolume}" -p 'Your Volume [0-100] >' myVolume
     (((myVolume >= 1) && (myVolume <= 100))) && break
   done
 
   minDxWpm=${minDxWpm:-12}
   while :; do
-    read -ei "${minDxWpm}" -p 'Min DX WPM [4-60] > ' minDxWpm
+    read -ei "${minDxWpm}" -p 'Min DX WPM [4-60] >' minDxWpm
     (((minDxWpm >= 4) && (minDxWpm <= 60))) && break
   done
 
-  maxDxWpm=${maxDxWpm:-20}
+  maxDxWpm=${maxDxWpm:-22}
   while :; do
-    read -ei "${maxDxWpm}" -p 'Max DX WPM [4-60] > ' maxDxWpm
+    read -ei "${maxDxWpm}" -p 'Max DX WPM [4-60] >' maxDxWpm
     (((maxDxWpm >= minDxWpm) && (maxDxWpm <= 60))) && break
   done
 
@@ -123,43 +122,43 @@ function my::changeConfiguration() {
 
   minDxTone=${minDxTone:-300}
   while :; do
-    read -ei "${minDxTone}" -p 'Min DX Tone [0-4000] > ' minDxTone
+    read -ei "${minDxTone}" -p 'Min DX Tone [0-4000] >' minDxTone
     (((minDxTone >= 50) && (minDxTone <= 4000))) && break
   done
 
-  maxDxTone=${maxDxTone:-300}
+  maxDxTone=${maxDxTone:-1200}
   while :; do
-    read -ei "${maxDxTone}" -p 'Max DX Tone [0-4000] > ' maxDxTone
+    read -ei "${maxDxTone}" -p 'Max DX Tone [0-4000] >' maxDxTone
     (((maxDxTone >= minDxTone) && (maxDxTone <= 4000))) && break
   done
 
   minDxVolume=${minDxVolume:-1}
   while :; do
-    read -ei "${minDxVolume}" -p 'Min DX Volume [0-100] > ' minDxVolume
+    read -ei "${minDxVolume}" -p 'Min DX Volume [0-100] >' minDxVolume
     (((minDxVolume >= 1) && (minDxVolume <= 100))) && break
   done
 
-  maxDxVolume=${maxDxVolume:-1}
+  maxDxVolume=${maxDxVolume:-100}
   while :; do
-    read -ei "${maxDxVolume}" -p 'Max DX Volume [0-100] > ' maxDxVolume
+    read -ei "${maxDxVolume}" -p 'Max DX Volume [0-100] >' maxDxVolume
     (((maxDxVolume >= minDxVolume) && (maxDxVolume <= 100))) && break
   done
 
  {
-   echo "myCall=${myCall:-NOCALL}"
+   echo "myCall=${myCall}"
    echo '#'
-   echo "myWpm=${myWpm:-14}"
-   echo "myTone=${myTone:-800}"
-   echo "myVolume=${myVolume:-50}"
+   echo "myWpm=${myWpm}"
+   echo "myTone=${myTone}"
+   echo "myVolume=${myVolume}"
    echo '#'
-   echo "minDxWpm=${minDxWpm:-12}"
-   echo "maxDxWpm=${maxDxWpm:-20}"
+   echo "minDxWpm=${minDxWpm}"
+   echo "maxDxWpm=${maxDxWpm}"
    echo '#'
-   echo "minDxTone=${minDxTone:-300}"
-   echo "maxDxTone=${maxDxTone:-1200}"
+   echo "minDxTone=${minDxTone}"
+   echo "maxDxTone=${maxDxTone}"
    echo '#'
-   echo "minDxVolume=${minDxVolume:-1}"
-   echo "maxDxVolume=${maxDxVolume:-80}"
+   echo "minDxVolume=${minDxVolume}"
+   echo "maxDxVolume=${maxDxVolume}"
  } > "${configFile}"
 
 }
@@ -186,18 +185,18 @@ declare -r digitString='1234567890'
 declare -r alnumString="${digitString}${alphaString}"
 
 function my::setNewDxInfo() {
-  dxCall='R' 
+  dxCall='_'
   # No Pirates Allowed!
-  regex='^R|^U[A-I]|^D[0-1]'
+  regex='_|^R|^U[A-I]|^D[0-1]'
   while [[ "${dxCall}" =~ ${regex} ]]; do
     dxCall="\
 ${alnumString:$((RANDOM % 36)):$((RANDOM)) % 2}\
-${alnumString:$((RANDOM % 26)):1}\
+${alphaString:$((RANDOM % 26)):1}\
 ${digitString:$((RANDOM % 10)):1}\
 ${digitString:$((RANDOM % 10)):$((RANDOM)) % 2}\
 ${digitString:$((RANDOM % 10)):$((RANDOM)) % 2}\
 ${alnumString:$((RANDOM % 36)):$((RANDOM)) % 2}\
-${alnumString:$((RANDOM % 26)):1}"
+${alphaString:$((RANDOM % 26)):1}"
   done
 
   recvRst="5$((5 + (RANDOM % 4)))9"
@@ -248,7 +247,7 @@ function my::sendQslTu() {
 
 function my::doQso() {
   # doQSO myCall dxCall sendRst
-  read -p 'DXCALL RST >> ' -ei "${2^^} ${3}" sendCall sendRst
+  read -p 'DXCALL RST >>> ' -ei "${2^^} ${3}" sendCall sendRst
   if (((sendRst < 333) || (sendRst > 599))); then sendRst=599; fi
   echo "DX CALL: ${sendCall}  DX RST: ${sendRst}"
   echo "${sendCall} DE $1 UR ${sendRst//9/N} [AR]"\
@@ -287,7 +286,7 @@ my::echoInfo
 # (play -q -c 2 -r 48000 -e signed -L -b 32 -t raw -v 0.02 /dev/urandom) &
 # noiceSoursePid=$!
 
-PS3='Command or "DxCall RST"> '
+PS3='Command or "DxCall RST" >'
 select userChoice in 'CQ' 'QRZ?' 'AGN' 'TU'; do
 
   read userCommand userOption <<<"${REPLY}"
@@ -342,8 +341,6 @@ select userChoice in 'CQ' 'QRZ?' 'AGN' 'TU'; do
     }
     ;;
   *)
-    # read sendCall sendRst <<<"$REPLY"
-
     regex=".{1,2}[0-9].+"
     if [[ "${sendCall}" =~ ${regex} ]]; then
 
