@@ -1,12 +1,12 @@
 #! /bin/bash
 #
-# gccqs - GNU CLI CW QSO Simulator, version 1.1.0131-beta
+# gccqs - GNU CLI CW QSO Simulator, version 1.2.0202-beta
 # Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 # License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 # This is free software; you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-declare -xu dxCall='' myCall='' sendCall=''
+declare -xu dxCall='' myCall='' sendCall='' qsoCall=''
 declare -xi recvRst=599 dxWpm=14 dxTone=800 dxVolume=70
 declare -xi sendRst=599 myWpm=14 myTone=800 myVolume=50
 declare -i minDxWpm maxDxWpm minDxTone maxDxTone minDxVolume maxDxVolume
@@ -15,9 +15,10 @@ declare -r configDir="$HOME/.gccqs"
 declare -r configFile="${configDir}/gccqs.conf"
 
 function my::exitProgram() {
-  # [ -n "${cwPid}" ] &&  kill "${cwPid}" 2>/dev/null
-  killall -q cw 2>/dev/null
-  # killall -q play 2>/dev/null
+  ps -Af | grep cw
+  [ -n "$!" ] && kill -KILL $! 2>/dev/null
+  echo; echo "PID=$! CwPID=$cwPid"
+  echo 'EXIT'
   exit
 }
 
@@ -25,7 +26,7 @@ trap my::exitProgram EXIT
 
 case "${LANG}" in
   uk_*) declare -r versionText=\
-'gccqs - GNU CLI симулятор CW QSO, версія 1.1.0131-beta
+'gccqs - GNU CLI симулятор CW QSO, версія 1.2.0202-beta
 Copyright (C) 2022, Ігор Сокорчук <ur3lcm@gmail.com>
 Ліцензія GPLv3+: GNU GPL версії 3 або новішої <http://gnu.org/licenses/gpl.html>
 Це безкоштовне програмне забезпечення, яке ви можете змінювати та поширювати.
@@ -45,7 +46,7 @@ GNU CLI симулятор CW QSO
   ;;
 
   *)    declare -r versionText=\
-'gccqs - GNU CLI CW QSO Simulator, version 1.1.0131-beta
+'gccqs - GNU CLI CW QSO Simulator, version 1.2.0202-beta
 Copyright (C) 2022, Ihor P. Sokorchuk <ur3lcm@gmail.com>
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 This is free software; you are free to change and redistribute it.
@@ -63,8 +64,7 @@ GNU CLI CW QSO Simulator
   -h, --help       display this help and exit
   -v, --version    output version information and exit'
   ;;
-
-  esac
+esac
 
 function my::showHelp() {
   echo "$helpText"
@@ -159,12 +159,11 @@ function my::changeConfiguration() {
    echo '#'
    echo "minDxVolume=${minDxVolume}"
    echo "maxDxVolume=${maxDxVolume}"
- } > "${configFile}"
-
+ } > "${configFile}" &&  echo -e "\nOK Configuration saved\n"
 }
 
 function my::showConfiguration() {
-  echo '======================================'
+  echo '======================================================'
   echo "My Call:   $myCall"
   echo "My WPM:    $myWpm PARIS"
   echo "My Tone:   $myTone Hz"
@@ -173,10 +172,11 @@ function my::showConfiguration() {
   echo "DX Tone:   ${minDxTone}..${maxDxTone} Hz"
   echo "DX Volume: ${minDxVolume}..${maxDxVolume}%"
   echo "Config File: ${configFile}"
-  echo '======================================'
+  echo '======================================================'
 }
 
 function my::echoInfo() {
+  echo 'c) CQ; q,?) QRZ?; a) AGN; t) TU;'
   echo 'Type command: c,q,?,a,t or C for Config and Q for Quit'
 }
 
@@ -187,7 +187,7 @@ declare -r alnumString="${digitString}${alphaString}"
 function my::setNewDxInfo() {
   dxCall='_'
   # No Pirates Allowed!
-  regex='_|^R|^U[A-I]|^D[0-1]'
+  regex='_|^R|^U[A-I0-9]|^D[0-1]'
   while [[ "${dxCall}" =~ ${regex} ]]; do
     dxCall="\
 ${alnumString:$((RANDOM % 36)):$((RANDOM)) % 2}\
@@ -203,14 +203,20 @@ ${alphaString:$((RANDOM % 26)):1}"
   dxWpm="$((minDxWpm + (RANDOM % (maxDxWpm - minDxWpm))))"
   dxTone="$((minDxTone + (RANDOM % (maxDxTone - minDxTone))))"
   dxVolume="$((minDxVolume + (RANDOM % (maxDxVolume-minDxVolume))))"
+  echo "TONE=$dxTone"
 }
 
 function my::sendCwText() {
+  echo -n '>>> '
   echo "$@" | cw -m -w ${myWpm} -t ${myTone} -v ${myVolume}
 }
 
+function my::sendDxCwText() {
+  echo "$@" | cw -em -w ${dxWpm} -t ${dxTone} -v ${dxVolume}
+}
+
 function my::soundDxCall() { ###
-  my::sendCwText "%E0;DE ${dxCall} [AR]"
+  my::sendDxCwText "DE ${dxCall} [AR]"
 }
 
 function my::soundDxRaport() { ###
@@ -219,7 +225,7 @@ function my::soundDxRaport() { ###
     1) string="CFM DE ${dxCall} UR ${recvRst} [AR]" ;;
     *) string="QSL DE ${dxCall} UR ${recvRst//9/N} [AR]" ;;
   esac
-  my::sendCwText "%E0;${string}"
+  my::sendDxCwText "${string}"
 }
 
 function my::sendCq() {
@@ -239,14 +245,14 @@ function my::sendQuestionMark() {
 }
 
 function my::sendQslTu() {
-  my::sendCwText "QSL TU [SK]"
+  my::sendCwText "QSL TU [VA]"
 }
 
-function my::doQso() {
-  # doQSO myCall dxCall sendRst
-  read -p 'DXCALL RST >>> ' -ei "${2^^} ${3}" sendCall sendRst
+function my::makeQso() {
+  # makeQso myCall dxCall sendRst
+  #  read -p 'DXCALL RST >>> ' -ei "${2^^} ${3}" sendCall sendRst
   if (((sendRst < 333) || (sendRst > 599))); then sendRst=599; fi
-  echo "DX CALL: ${sendCall}  DX RST: ${sendRst}"
+  #  echo "DX CALL: ${sendCall}  DX RST: ${sendRst}"
   my::sendCwText "${sendCall} DE $1 UR ${sendRst//9/N} [AR]"
 }
 
@@ -277,83 +283,83 @@ source "${configFile}"
 my::showConfiguration
 
 my::setNewDxInfo
-my::echoInfo
 
 # (play -q -c 2 -r 48000 -e signed -L -b 32 -t raw -v 0.02 /dev/urandom) &
 # noiceSoursePid=$!
 
-PS3='Command or "DxCall RST" >'
-select userChoice in 'CQ' 'QRZ?' 'AGN' 'TU'; do
+while :; do
 
-  read userCommand userOption <<<"${REPLY}"
+  my::echoInfo
 
-  sendCall="${userCommand}"
+  read -ei "$qsoCall" -p 'Command or "DxCall RST" >' userCommand userOption etc
 
-  [[ "${userOption}" == '?' ]] && userOption='question_mark'
-
-  sendRst="${userOption}"
-  (((sendRst < 333) || (sendRst > 599))) && sendRst=599
-
-  if   [ "${userCommand}" == 'Q' ]; then exit
-  elif [ "${userCommand}" == 'C' ]; then userChoice='CONFIG'
-  elif [ "${userCommand}" == 'c' ]; then userChoice='CQ'
-  elif [ "${userCommand}" == 'q' ]; then userChoice='QRZ?'
-  elif [ "${userCommand}" == '?' ]; then userChoice='QRZ?'
-  elif [ "${userCommand}" == 'a' ]; then userChoice='AGN'
-  elif [ "${userCommand}" == 't' ]; then userChoice='TU'
-  elif [ "${userOption}" == 'question_mark' ]; then
-    userChoice='question_mark'
-  fi
-
-  case "${userChoice}" in
-  CQ)
+  case "${userCommand}" in
+  c) # CQ
     my::sendCq ${myCall} && {
       my::setNewDxInfo
       (my::soundDxCall) &
       cwPid="$!"
     }
     ;;
-  QRZ?)
+  q) # QRZ_QUESTION
     my::sendQrz ${myCall} && {
       (my::soundDxCall) &
       cwPid="$!"
     }
     ;;
-  AGN)
+  a) # AGN
     my::sendAgn ${myCall} && {
       (my::soundDxCall) &
       cwPid="$!"
     }
     ;;
-  TU)
+  t) # TU
     my::sendQslTu ${myCall} && {
       my::setNewDxInfo
       (sleep $(((RANDOM % 3) + 1)) && my::soundDxCall) &
       cwPid="$!"
     }
+    qsoCall=''
     ;;
-  CONFIG)
-    echo
-    echo 'CHANGE CONFIGURATION'
-    echo
+  C) # CONFIG
+    echo; echo "CHANGE CONFIGURATION"; echo
     my::changeConfiguration
     ;;
-  question_mark)
+  \?) # QUESTION_MARK
     my::sendQuestionMark ${myCall} && {
       (my::soundDxCall) &
       cwPid="$!"
     }
     ;;
-  *)
-    regex=".{1,2}[0-9].+"
-    if [[ "${sendCall}" =~ \? ]]; then # is a question mark
-      my::sendCwText "${sendCall}" && { ## check correct DX call pattern
+  Q) # EXIT
+    exit
+    ;;
+  ??*)
+    if [[ "${userCommand}" =~ \? ]]; then
+      # is a call question mark
+      qsoCall="${userCommand%?}"
+      sendCall="${userCommand}"
+      my::sendCwText "${sendCall} PSE"
+      [[ ${dxCall} =~ ${sendCall//\?/.+} ]] && {
         (my::soundDxCall) &
         cwPid="$!"
       }
-    elif [[ "${sendCall}" =~ ${regex} ]]; then # is a call sign
-      my::doQso "${myCall}" "${sendCall}" "${sendRst}"
-      if [ "${dxCall}" == "${sendCall}" ]; then # sent correct call sign
+    elif [[ "${userOption}" =~ \? ]]; then
+      # is a option question mark
+      qsoCall="${userCommand}"
+      sendCall="${userCommand}"
+      my::sendCwText "${sendCall} \?"
+      [[ ${dxCall} =~ ${sendCall} ]] && {
+        (my::soundDxCall) &
+        cwPid="$!"
+      }
+    elif [[ "${userCommand}" =~ .{1,2}[0-9].+ ]]; then
+      qsoCall=''
+      sendCall="${userCommand}" # is a call sign
+      sendRst="${userOption}"
+      (((sendRst < 333) || (sendRst > 599))) && sendRst=599
+      my::makeQso "${myCall}" "${sendCall}" "${sendRst}"
+      if [ "${sendCall}" == "${dxCall}" ]; then # sent correct call sign
         (my::soundDxRaport) &
         cwPid="$!"
       else # sent incorrect call sign
@@ -363,7 +369,15 @@ select userChoice in 'CQ' 'QRZ?' 'AGN' 'TU'; do
     fi
     ;;
   esac
-
-  my::echoInfo
-
 done
+
+# EOF
+
+#Usage: dfdffgfhghgh [OPTIONS] filename
+#
+#Generic Options
+#  -h, --help                              Print this help and exit.
+#      --version                           Print program version and exit.
+#      --print-config                      Print info about options selected
+#                                          during compilation and exit.
+
